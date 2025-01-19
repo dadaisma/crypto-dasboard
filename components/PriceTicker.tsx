@@ -2,13 +2,14 @@
 
 import {useState, useEffect} from 'react';
 import { fetchBinanceData } from '@/lib/fetchBinanceData';
+import { formatPrice } from '@/lib/utils';
 
 type PriceData = {
     symbol: string;
     price: string;
 };
 
-const PriceTicker = () => {
+const PriceTicker = ({symbol} : {symbol: string}) => {
     const [prices, setPrices] = useState<PriceData[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -16,7 +17,6 @@ const PriceTicker = () => {
     async function fetchPrices() {
       try {
         const data = await fetchBinanceData<PriceData[]>('/api/v3/ticker/price');
-        console.log(data);
         setPrices(data);
         setLoading(false);
       } catch (error) {
@@ -39,7 +39,7 @@ const PriceTicker = () => {
             <ul>
                 {prices.map((price) => (
                     <li key={price.symbol}>
-                        {price.symbol}: {price.price}
+                        {price.symbol}: {formatPrice(price.price)}
                     </li>
                 ))}
             </ul>

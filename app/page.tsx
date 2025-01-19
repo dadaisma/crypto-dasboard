@@ -1,90 +1,106 @@
+"use client";
 
-
-import Image from "next/image";
-import PriceTicker from "@/components/PriceTicker";
+import { useEffect, useState } from "react";
+import PriceChart from "@/components/PriceChart";
+import { fetchBinanceData } from "@/lib/fetchBinanceData";
+import { CandlestickData } from "@/lib/types";
+import { UTCTimestamp } from "lightweight-charts";
 import OrderBook from "@/components/OrderBook";
+import PriceTicker from "@/components/PriceTicker";
+import { TRADING_PAIRS } from "@/lib/types";
+import Header from "@/components/Header";
+
+
+type CandleStickResponse = [number, string, string, string, string][];
+
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <OrderBook />
-        <PriceTicker />
-        
+  const [data, setData] = useState<CandlestickData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPair, setSelectedPair] = useState<string>(TRADING_PAIRS[0].symbol);
+  const [selectedInterval, setSelectedInterval] = useState<string>('1h');
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+
+  useEffect(() => {
+    async function loadChartData() {
+      try {
+        const response = await fetchBinanceData<CandleStickResponse>("/api/v3/klines", {
+          symbol: selectedPair,
+          interval: selectedInterval,
+          limit: "200",
+      });
+      const chartData = (response as CandleStickResponse).map(
+        ([time, open, high, low, close]) => ({
+            time: (time / 1000) as UTCTimestamp, // Convert timestamp to seconds
+            open: parseFloat(open),
+            high: parseFloat(high),
+            low: parseFloat(low),
+            close: parseFloat(close),
+            volume: 0,
+        })
+    );
+        setData(chartData);
+      } catch (error) {
+        console.error("Error fetching chart data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadChartData();
+  }, [selectedPair, selectedInterval]);
+
+  if (loading) {
+    return <div className="loading min-h-screen text-center">Loading...</div>;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white p-8">
+      <Header />
+      <div className="flex justify-around items-center gap-4 w-full md:w-2/3" >
+<div>
+
+      <select
+        value={selectedPair}
+        onChange={(e) => setSelectedPair(e.target.value)}
+        className="mb-4 p-2 bg-gray-800 text-white"
+      >
+        {TRADING_PAIRS.map((pair) => (
+          <option key={pair.symbol} value={pair.symbol}>
+            {pair.baseAsset}/{pair.quoteAsset}
+          </option>
+        ))}
+      </select>
+</div>
+      <div className="mb-4">
+        <label className="mr-2">Interval:</label>
+        <select
+          value={selectedInterval}
+          onChange={(e) => setSelectedInterval(e.target.value)}
+          className="p-2 bg-gray-800 text-white"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          <option value="15m">15m</option>
+          <option value="30m">30m</option>
+          <option value="1h">1h</option>
+          <option value="4h">4h</option>
+          <option value="1d">1d</option>
+          <option value="1w">1w</option>
+          <option value="1M">1M</option>
+        </select>
+      </div>
+      </div>
+      <div className="w-full flex flex-col lg:flex-row gap-4 ">
+       <div className="w-full lg:w-2/3">
+
+          <PriceChart data={data} onReady={() => console.log("Chart is ready!")} />
+       </div>
+       <div className="flex justify-center">
+
+          <OrderBook symbol={selectedPair} />
+       </div>
+       
+       
+      </div>
     </div>
   );
 }
