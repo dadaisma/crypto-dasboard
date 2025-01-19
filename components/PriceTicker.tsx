@@ -16,7 +16,6 @@ const PriceTicker = () => {
     async function fetchPrices() {
       try {
         const data = await fetchBinanceData<PriceData[]>('/api/v3/ticker/price');
-        console.log(data);
         setPrices(data);
         setLoading(false);
       } catch (error) {
