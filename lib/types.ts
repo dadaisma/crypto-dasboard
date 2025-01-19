@@ -1,7 +1,8 @@
 import { UTCTimestamp } from 'lightweight-charts';
 
 export interface CandlestickData {
-    time: UTCTimestamp
+   // time:number;
+    time: UTCTimestamp;
     open: number;
     high: number;
     low: number;

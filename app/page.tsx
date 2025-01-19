@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import PriceChart from "@/components/PriceChart";
-import { fetchBinanceData } from "@/lib/fetchBinanceData";
-import { CandlestickData } from "@/lib/types";
+import { fetchBinanceData, createWebSocket } from "@/lib/fetchBinanceData";
+import { CandlestickData, OrderBookData } from "@/lib/types";
 import { UTCTimestamp } from "lightweight-charts";
 import OrderBook from "@/components/OrderBook";
 import PriceTicker from "@/components/PriceTicker";
@@ -11,44 +11,108 @@ import { TRADING_PAIRS } from "@/lib/types";
 import Header from "@/components/Header";
 
 
-type CandleStickResponse = [number, string, string, string, string][];
+type CandleStickResponse = [number, string, string, string, string, string][];
 
 
 export default function Home() {
   const [data, setData] = useState<CandlestickData[]>([]);
+  const [orderBook, setOrderBook] = useState<OrderBookData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPair, setSelectedPair] = useState<string>(TRADING_PAIRS[0].symbol);
   const [selectedInterval, setSelectedInterval] = useState<string>('1h');
-
+  const [error, setError] = useState<string | null>(null);
+  const [isChartReady, setIsChartReady] = useState<boolean>(false);
+  const [lastPrice, setLastPrice] = useState<number | null>(null);
+  const [priceChange, setPriceChange] = useState<number | null>(null);
 
   useEffect(() => {
-    async function loadChartData() {
+    let ws: WebSocket;
+
+    const initializeData = async () => {
       try {
-        const response = await fetchBinanceData<CandleStickResponse>("/api/v3/klines", {
-          symbol: selectedPair,
-          interval: selectedInterval,
-          limit: "200",
-      });
-      const chartData = (response as CandleStickResponse).map(
-        ([time, open, high, low, close]) => ({
+        console.log(`Fetching data for ${selectedPair} with interval ${selectedInterval}`);
+        const [klines, orderBookData] = await Promise.all([
+          fetchBinanceData<CandleStickResponse>("/api/v3/klines", {
+            symbol: selectedPair,
+            interval: selectedInterval,
+            limit: "200",
+          }),
+          fetchBinanceData<OrderBookData>("/api/v3/depth", {
+            symbol: selectedPair,
+            limit: "18",
+          }),
+        ]);
+
+        const chartData = klines.map(
+          ([time, open, high, low, close, volume]) => ({
             time: (time / 1000) as UTCTimestamp, // Convert timestamp to seconds
             open: parseFloat(open),
             high: parseFloat(high),
             low: parseFloat(low),
             close: parseFloat(close),
-            volume: 0,
-        })
-    );
+            volume: parseFloat(volume)
+          })
+        );
+
         setData(chartData);
+        setOrderBook(orderBookData);
+        setLastPrice(parseFloat(klines[klines.length - 1][4]));
+
+        if (isChartReady) {
+          ws = createWebSocket(selectedPair, (data) => {
+            if (data.e === 'kline') {
+              const newCandle: CandlestickData = {
+                time: data.k.t / 1000 as UTCTimestamp,
+                open: parseFloat(data.k.o),
+                high: parseFloat(data.k.h),
+                low: parseFloat(data.k.l),
+                close: parseFloat(data.k.c),
+                volume: parseFloat(data.k.v),
+              };
+
+              setData(prev => {
+                const filtered = prev.filter(candle => candle.time !== newCandle.time);
+                return [...filtered, newCandle].sort((a, b) => a.time - b.time);
+              });
+
+              const newPrice = parseFloat(data.k.c);
+              setLastPrice(prevPrice => {
+                if (prevPrice !== null) {
+                  setPriceChange(((newPrice - prevPrice) / prevPrice) * 100);
+                }
+                return newPrice;
+              });
+            } else if (data.e === 'depthUpdate') {
+              setOrderBook(prev => ({
+                lastUpdateId: data.u,
+                bids: data.b.map((bid: string[]) => ({
+                  price: parseFloat(bid[0]),
+                  quantity: parseFloat(bid[1]),
+                })),
+                asks: data.a.map((ask: string[]) => ({
+                  price: parseFloat(ask[0]),
+                  quantity: parseFloat(ask[1]),
+                })),
+              }));
+            }
+          });
+        }
+        
       } catch (error) {
-        console.error("Error fetching chart data:", error);
+        console.error('Error initializing data:', error);
       } finally {
         setLoading(false);
       }
-    }
+    };
 
-    loadChartData();
-  }, [selectedPair, selectedInterval]);
+    initializeData();
+
+    return () => {
+      if (ws) {
+        ws.close();
+      }
+    };
+  }, [selectedPair, selectedInterval, isChartReady, orderBook]);
 
   if (loading) {
     return <div className="loading min-h-screen text-center">Loading...</div>;
@@ -96,7 +160,7 @@ export default function Home() {
        </div>
        <div className="flex justify-center">
 
-          <OrderBook symbol={selectedPair} />
+          <OrderBook symbol={selectedPair} orderBook={orderBook}/>
        </div>
        
        

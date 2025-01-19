@@ -1,5 +1,6 @@
 
 const BINANCE_API_URL = 'https://api.binance.com';
+const BINANCE_WS_URL = 'wss://stream.binance.com:9443/ws';
 
 
 
@@ -14,4 +15,39 @@ export async function fetchBinanceData<T>(
     if (!response.ok) throw new Error(`Errror getting data from Binance: ${response.statusText}`);
   
     return response.json() as Promise<T>;
+  }
+
+
+  export function createWebSocket(symbol: string, onMessage: (data: any) => void): WebSocket {
+    const ws = new WebSocket(BINANCE_WS_URL);
+  
+    ws.onopen = () => {
+      // Subscribe to candlestick and depth streams
+      ws.send(
+        JSON.stringify({
+          method: 'SUBSCRIBE',
+          params: [
+            `${symbol.toLowerCase()}@kline_1m`,
+            `${symbol.toLowerCase()}@depth20@100ms`
+          ],
+          id: 1
+        })
+      );
+    };
+  
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      onMessage(data);
+    };
+  
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+  
+    ws.onclose = () => {
+      console.log('WebSocket connection closed. Reconnecting in 5 seconds...');
+      setTimeout(() => createWebSocket(symbol, onMessage), 5000);
+    };
+  
+    return ws;
   }
