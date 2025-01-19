@@ -70,3 +70,18 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.bid {
+  color: green;
+}
+
+.ask {
+  color: red;
+}
+
+.loading {
+  margin-bottom: 1rem; /* mb-4 */
+  padding: 0.5rem; /* p-2 */
+  background-color: #2d3748; /* bg-gray-800 */
+  color: #ffffff; /* text-white */
+}
