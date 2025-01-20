@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { createChart, IChartApi, ISeriesApi } from "lightweight-charts";
+import { createChart, IChartApi } from "lightweight-charts";
 import { CandlestickData } from "@/lib/types";
 
 interface PriceChartProps {

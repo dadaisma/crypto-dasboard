@@ -48,7 +48,8 @@ export default function Home() {
   
     const initializeData = async () => {
       try {
-        console.log(`Fetching data for ${selectedPair} with interval ${selectedInterval}`);
+        
+      //  console.log(`Fetching data for ${selectedPair} with interval ${selectedInterval}`);
         const [klines, orderBookData] = await Promise.all([
           fetchBinanceData<CandleStickResponse>("/api/v3/klines", {
             symbol: selectedPair,
@@ -76,7 +77,7 @@ export default function Home() {
         setOrderBook(orderBookData);
         setLastPrice(parseFloat(klines[klines.length - 1][4]));
         setVolume(parseFloat(klines[klines.length - 1][5]));
-
+      
      
         if (isChartReady) {
           ws = createWebSocket(selectedPair, (data) => {
@@ -135,6 +136,7 @@ export default function Home() {
     };
   }, [selectedPair, selectedInterval, isChartReady]); 
 
+ 
   const formatNumber = (number: number) => {
     return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number);
   };
