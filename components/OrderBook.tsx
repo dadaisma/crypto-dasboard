@@ -1,7 +1,6 @@
 "use client";
 
-import {useState, useEffect} from 'react';
-import { fetchBinanceData } from '@/lib/fetchBinanceData';
+
 import { OrderBookData } from '@/lib/types';
 import { formatPriceN,  formatQuantityN } from '@/lib/utils';
 

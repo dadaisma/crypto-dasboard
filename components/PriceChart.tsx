@@ -29,48 +29,42 @@ export default function PriceChart({ data, onReady }: PriceChartProps) {
       height: 400,
     });
 
-    // Create volume series first (so it appears behind the candlesticks)
-    const volumeSeries = chart.addHistogramSeries({
-      color: '#26a69a',
+     // Create volume series first (so it appears behind the candlesticks)
+     const volumeSeries = chart.addHistogramSeries({
+      color: "#26a69a",
       priceFormat: {
-        type: 'volume',
+        type: "volume",
       },
-      priceScaleId: 'volume', // Separate scale for volume
-      scaleMargins: {
-        top: 0.7, // Reserve 70% of the space for candlesticks
-        bottom: 0,
-      },
+      priceScaleId: "volume", // Separate scale for volume
     });
 
     // Create candlestick series
     const candlestickSeries = chart.addCandlestickSeries({
-      upColor: '#26a69a',
-      downColor: '#ef5350',
+      upColor: "#26a69a",
+      downColor: "#ef5350",
       borderVisible: false,
-      wickUpColor: '#26a69a',
-      wickDownColor: '#ef5350',
-      priceScaleId: 'right', // Main price scale
+      wickUpColor: "#26a69a",
+      wickDownColor: "#ef5350",
+      priceScaleId: "right", // Main price scale
     });
 
     // Set the data for both series
     volumeSeries.setData(
-      data.map(item => ({
+      data.map((item) => ({
         time: item.time,
         value: item.volume,
-        color: item.close >= item.open ? '#26a69a' : '#ef5350',
+        color: item.close >= item.open ? "#26a69a" : "#ef5350",
       }))
     );
     candlestickSeries.setData(data);
 
     // Configure the volume scale to be overlaid
-    chart.priceScale('volume').applyOptions({
+    chart.priceScale("volume").applyOptions({
       scaleMargins: {
-        top: 0.7, // Match the volume series margins
+        top: 0.7, // Reserve 70% of the space for candlesticks
         bottom: 0,
       },
-      visible: true,
     });
-
     chartRef.current = chart;
     onReady();
 

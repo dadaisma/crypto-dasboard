@@ -6,7 +6,6 @@ import { fetchBinanceData, createWebSocket, closeWebSocket } from "@/lib/fetchBi
 import { CandlestickData, OrderBookData, OrderBookEntry } from "@/lib/types";
 import { UTCTimestamp } from "lightweight-charts";
 import OrderBook from "@/components/OrderBook";
-import PriceTicker from "@/components/PriceTicker";
 import { TRADING_PAIRS } from "@/lib/types";
 import Header from "@/components/Header";
 import { FaArrowCircleDown, FaArrowCircleUp } from "react-icons/fa";
@@ -40,7 +39,9 @@ export default function Home() {
   const [lastPrice, setLastPrice] = useState<number | null>(null);
   const [priceChange, setPriceChange] = useState<number | null>(null);
   const [volume, setVolume] = useState<number | null>(null);
-
+  const [priceChange24h, setPriceChange24h] = useState<number | null>(null);
+  const [volume24h, setVolume24h] = useState<number | null>(null);
+  const [data24h, setData24h] = useState<CandlestickData[]>([]);
 
 
   useEffect(() => {
@@ -50,7 +51,7 @@ export default function Home() {
       try {
         
       //  console.log(`Fetching data for ${selectedPair} with interval ${selectedInterval}`);
-        const [klines, orderBookData] = await Promise.all([
+        const [klines, orderBookData, klines24h] = await Promise.all([
           fetchBinanceData<CandleStickResponse>("/api/v3/klines", {
             symbol: selectedPair,
             interval: selectedInterval,
@@ -59,6 +60,11 @@ export default function Home() {
           fetchBinanceData<OrderBookData>("/api/v3/depth", {
             symbol: selectedPair,
             limit: "18",
+          }),
+          fetchBinanceData<CandleStickResponse>("/api/v3/klines", {
+            symbol: selectedPair,
+            interval: "1h",
+            limit: "24",
           }),
         ]);
        
@@ -72,12 +78,32 @@ export default function Home() {
             volume: parseFloat(volume)
           })
         );
+
+        const chartData24h = klines24h.map(
+          ([time, open, high, low, close, volume]) => ({
+            time: (time / 1000) as UTCTimestamp, // Convert timestamp to seconds
+            open: parseFloat(open),
+            high: parseFloat(high),
+            low: parseFloat(low),
+            close: parseFloat(close),
+            volume: parseFloat(volume),
+          })
+        );
   
         setData(chartData);
+        setData24h(chartData24h);
         setOrderBook(orderBookData);
         setLastPrice(parseFloat(klines[klines.length - 1][4]));
         setVolume(parseFloat(klines[klines.length - 1][5]));
       
+ // Calculate 24h change and volume
+ const firstPrice24h = parseFloat(klines24h[0][1]);
+ const lastPrice24h = parseFloat(klines24h[klines24h.length - 1][4]);
+ const volume24h = klines24h.reduce((acc, kline) => acc + parseFloat(kline[5]), 0);
+
+ setPriceChange24h(((lastPrice24h - firstPrice24h) / firstPrice24h) * 100);
+ setVolume24h(volume24h);
+
      
         if (isChartReady) {
           ws = createWebSocket(selectedPair, (data) => {
@@ -141,6 +167,22 @@ export default function Home() {
     return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number);
   };
 
+  const calculate24hVolume = () => {
+    if (data24h.length === 0 || lastPrice === null) return '$0';
+    const volume = data24h.reduce((acc, curr) => acc + curr.volume, 0) * lastPrice;
+    return `$${volume.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  };
+
+  const calculate24hChange = () => {
+    if (data24h.length < 24) return 0;
+    const change = ((data24h[data24h.length - 1].close - data24h[0].open) / data24h[0].open) * 100;
+    return change;
+  };
+
+  const change24h = calculate24hChange();
+  const change24hClass = change24h > 0 ? 'text-green-400' : 'text-red-400';
+
+
   if (loading) {
     return <div className="loading min-h-screen text-center">Loading...</div>;
   }
@@ -150,7 +192,7 @@ export default function Home() {
       <Header />
       <div className="flex justify-around items-center gap-4 w-full md:w-2/3" >
 <div>
-
+<label className="mr-2 text-sm">Pair:</label>
       <select
         value={selectedPair}
         onChange={(e) => setSelectedPair(e.target.value)}
@@ -164,7 +206,7 @@ export default function Home() {
       </select>
 </div>
       <div className="mb-4">
-        <label className="mr-2">Interval:</label>
+        <label className="mr-2 text-sm">Interval:</label>
         <select
           value={selectedInterval}
           onChange={(e) => setSelectedInterval(e.target.value)}
@@ -181,12 +223,21 @@ export default function Home() {
       </div>
       </div>
       <div className="mb-4">
+      <div className="mb-4  flex justify-around items-center w-full lg:w-2/3 flex-col sm:flex-row">
+        <div className="text-3xl font-bold flex gap-2 items-center justify-center">
+       <h2 className="text-sm sm:text-md   ">24h Change</h2>
+       <div className={`text-xl sm:text-3xl ${change24hClass}`}>
+          {change24h.toFixed(2)}%
+        </div>
+        </div>
+        <div>
+       Volume: {calculate24hVolume()}
+        </div>
+        </div>
         <div className="flex justify-around items-center w-full lg:w-2/3 flex-col sm:flex-row ">
          <div className="flex gap-2 items-center text-sm">
-         
-
-        
-         <h3 className="text-lg"> 
+    
+         <h3 className="text-lg flex gap-2"> $
             {lastPrice !== null && (
                 <FlipNumbers
                   height={15}
@@ -205,15 +256,19 @@ export default function Home() {
             {priceChange && priceChange > 0 ? <FaArrowCircleUp  /> : <FaArrowCircleDown  />} <span >{priceChange?.toFixed(2)}%</span>
             </div>
          </div>
+          {/*
             <h3 className="text-sm sm:text-lg mt-2 sm:mt-0">Volume: {volume?.toFixed(2)}</h3>
+            */}
          
         </div>
       </div>
+     
       <div className="w-full flex flex-col lg:flex-row gap-4 ">
        <div className="w-full lg:w-2/3">
 
           <PriceChart data={data} onReady={() => setIsChartReady(true)} />
        </div>
+      
        <div className="flex justify-center">
 
           <OrderBook symbol={selectedPair} orderBook={orderBook}/>
