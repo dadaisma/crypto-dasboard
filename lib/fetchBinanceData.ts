@@ -28,7 +28,7 @@ export async function fetchBinanceData<T>(
           method: 'SUBSCRIBE',
           params: [
             `${symbol.toLowerCase()}@kline_1m`,
-            `${symbol.toLowerCase()}@depth20@100ms`
+            `${symbol.toLowerCase()}@depth`
           ],
           id: 1
         })
@@ -46,8 +46,24 @@ export async function fetchBinanceData<T>(
   
     ws.onclose = () => {
       console.log('WebSocket connection closed. Reconnecting in 5 seconds...');
-      setTimeout(() => createWebSocket(symbol, onMessage), 5000);
+    //  setTimeout(() => createWebSocket(symbol, onMessage), 5000);
     };
   
     return ws;
   }
+
+  export const closeWebSocket = (ws: WebSocket, symbol: string) => {
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(
+            JSON.stringify({
+                method: 'UNSUBSCRIBE',
+                params: [
+                    `${symbol.toLowerCase()}@kline_1m`,
+                    `${symbol.toLowerCase()}@depth`
+                ],
+                id: 1
+            })
+        );
+    }
+    ws.close();
+  };

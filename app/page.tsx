@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import PriceChart from "@/components/PriceChart";
-import { fetchBinanceData, createWebSocket } from "@/lib/fetchBinanceData";
-import { CandlestickData, OrderBookData } from "@/lib/types";
+import { fetchBinanceData, createWebSocket, closeWebSocket } from "@/lib/fetchBinanceData";
+import { CandlestickData, OrderBookData, OrderBookEntry } from "@/lib/types";
 import { UTCTimestamp } from "lightweight-charts";
 import OrderBook from "@/components/OrderBook";
 import PriceTicker from "@/components/PriceTicker";
@@ -12,7 +12,20 @@ import Header from "@/components/Header";
 
 
 type CandleStickResponse = [number, string, string, string, string, string][];
-
+interface WebSocketMessage {
+  e: string;
+  k?: {
+    t: number;
+    o: string;
+    h: string;
+    l: string;
+    c: string;
+    v: string;
+  };
+  u?: number;
+  b?: [string, string][];
+  a?: [string, string][];
+}
 
 export default function Home() {
   const [data, setData] = useState<CandlestickData[]>([]);
@@ -27,7 +40,7 @@ export default function Home() {
 
   useEffect(() => {
     let ws: WebSocket;
-
+  
     const initializeData = async () => {
       try {
         console.log(`Fetching data for ${selectedPair} with interval ${selectedInterval}`);
@@ -42,7 +55,7 @@ export default function Home() {
             limit: "18",
           }),
         ]);
-
+  
         const chartData = klines.map(
           ([time, open, high, low, close, volume]) => ({
             time: (time / 1000) as UTCTimestamp, // Convert timestamp to seconds
@@ -53,13 +66,14 @@ export default function Home() {
             volume: parseFloat(volume)
           })
         );
-
+  
         setData(chartData);
         setOrderBook(orderBookData);
         setLastPrice(parseFloat(klines[klines.length - 1][4]));
-
+  
         if (isChartReady) {
           ws = createWebSocket(selectedPair, (data) => {
+          
             if (data.e === 'kline') {
               const newCandle: CandlestickData = {
                 time: data.k.t / 1000 as UTCTimestamp,
@@ -69,12 +83,12 @@ export default function Home() {
                 close: parseFloat(data.k.c),
                 volume: parseFloat(data.k.v),
               };
-
+  
               setData(prev => {
                 const filtered = prev.filter(candle => candle.time !== newCandle.time);
                 return [...filtered, newCandle].sort((a, b) => a.time - b.time);
               });
-
+  
               const newPrice = parseFloat(data.k.c);
               setLastPrice(prevPrice => {
                 if (prevPrice !== null) {
@@ -83,7 +97,8 @@ export default function Home() {
                 return newPrice;
               });
             } else if (data.e === 'depthUpdate') {
-              setOrderBook(prev => ({
+             
+              setOrderBook({
                 lastUpdateId: data.u,
                 bids: data.b.map((bid: string[]) => ({
                   price: parseFloat(bid[0]),
@@ -93,26 +108,25 @@ export default function Home() {
                   price: parseFloat(ask[0]),
                   quantity: parseFloat(ask[1]),
                 })),
-              }));
+              });
             }
           });
         }
-        
       } catch (error) {
         console.error('Error initializing data:', error);
       } finally {
         setLoading(false);
       }
     };
-
+  
     initializeData();
-
+  
     return () => {
       if (ws) {
-        ws.close();
+        closeWebSocket(ws, selectedPair);
       }
     };
-  }, [selectedPair, selectedInterval, isChartReady, orderBook]);
+  }, [selectedPair, selectedInterval, isChartReady]); 
 
   if (loading) {
     return <div className="loading min-h-screen text-center">Loading...</div>;
@@ -156,7 +170,7 @@ export default function Home() {
       <div className="w-full flex flex-col lg:flex-row gap-4 ">
        <div className="w-full lg:w-2/3">
 
-          <PriceChart data={data} onReady={() => console.log("Chart is ready!")} />
+          <PriceChart data={data} onReady={() => setIsChartReady(true)} />
        </div>
        <div className="flex justify-center">
 

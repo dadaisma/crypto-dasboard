@@ -3,14 +3,13 @@
 import {useState, useEffect} from 'react';
 import { fetchBinanceData } from '@/lib/fetchBinanceData';
 import { OrderBookData } from '@/lib/types';
-import { formatPrice, formatQuantity } from '@/lib/utils';
+import { formatPriceN,  formatQuantityN } from '@/lib/utils';
 
 
 
 
 
 const OrderBook = ({ symbol, orderBook }: { symbol: string, orderBook: OrderBookData | null }) => {
-
 
     return (
       <div>
@@ -21,24 +20,30 @@ const OrderBook = ({ symbol, orderBook }: { symbol: string, orderBook: OrderBook
           ) : (
             <>
               <div>
+                <div className='flex  gap-4'>
+                    <div>
+
                 <h3 className='text-left'>Bids</h3>
-                <ul>
-                  {orderBook.bids.slice(0, 18).map(([price, quantity]) => (
-                    <li key={price} className='bid text-xs sm:text-sm'>
-                      {formatPrice(price)} - {formatQuantity(quantity)}
-                    </li>
-                  )) || <li>No bids available</li>}
-                </ul>
-              </div>
-              <div>
-                <h3 className='text-right'>Asks</h3>
-                <ul>
-                  {orderBook.asks.slice(0, 18).map(([price, qty]) => (
-                    <li key={price} className="ask text-xs sm:text-sm">
-                      {formatPrice(price)} - {formatQuantity(qty)}
-                    </li>
-                  )) || <li>No Asks available</li>}
-                </ul>
+                <ul className='w-36 whitespace-nowrap overflow-hidden text-ellipsis'>
+  {orderBook?.bids.slice(0, 18).map(({ price, quantity }, index) => (
+    <li key={`${price}-${quantity}-${index}`} className="bid text-xs sm:text-sm">
+      {price} - {quantity}
+    </li>
+  )) || <li>No bids available</li>}
+</ul>
+                    </div>
+<div >
+    <h3 className='text-right'>Asks</h3>
+    <ul className='w-36 whitespace-nowrap overflow-hidden text-ellipsis'>
+  {orderBook?.asks.slice(0, 18).map(({ price, quantity }, index) => (
+    <li key={`${price}-${quantity}-${index}`} className="ask text-xs sm:text-sm">
+      {formatPriceN(price)} - {formatQuantityN(quantity)}
+    </li>
+  )) || <li>No asks available</li>}
+</ul>
+</div>
+                </div>
+
               </div>
             </>
           )}

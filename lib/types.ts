@@ -10,11 +10,16 @@ export interface CandlestickData {
     volume: number;
   }
 
-export interface OrderBookData {
+  export interface OrderBookEntry {
+    price: number;
+    quantity: number;
+  }
+  
+  export interface OrderBookData {
     lastUpdateId: number;
-    bids: [string, string][];
-    asks: [string, string][];
-};
+    bids: OrderBookEntry[];
+    asks: OrderBookEntry[];
+  }
 
 export interface TradingPair {
   symbol: string;
