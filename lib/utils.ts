@@ -14,3 +14,14 @@ export const formatQuantity = (quantity: string) => {
     }
     return qty.toFixed(5);
 };
+
+export const formatPriceN = (price: number): number => {
+  return Math.round(price * 100) / 100;
+};
+
+export const formatQuantityN = (quantity: number): string => {
+  if (quantity >= 1000) {
+      return (Math.round((quantity / 1000) * 100) / 100) + 'K';
+  }
+  return (Math.round(quantity * 100000) / 100000).toString();
+};

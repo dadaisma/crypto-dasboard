@@ -1,54 +1,145 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import PriceChart from "@/components/PriceChart";
-import { fetchBinanceData } from "@/lib/fetchBinanceData";
-import { CandlestickData } from "@/lib/types";
+import { fetchBinanceData, createWebSocket, closeWebSocket } from "@/lib/fetchBinanceData";
+import { CandlestickData, OrderBookData, OrderBookEntry } from "@/lib/types";
 import { UTCTimestamp } from "lightweight-charts";
 import OrderBook from "@/components/OrderBook";
 import PriceTicker from "@/components/PriceTicker";
 import { TRADING_PAIRS } from "@/lib/types";
 import Header from "@/components/Header";
+import { FaArrowCircleDown, FaArrowCircleUp } from "react-icons/fa";
+import FlipNumbers from "react-flip-numbers";
 
 
-type CandleStickResponse = [number, string, string, string, string][];
-
+type CandleStickResponse = [number, string, string, string, string, string][];
+interface WebSocketMessage {
+  e: string;
+  k?: {
+    t: number;
+    o: string;
+    h: string;
+    l: string;
+    c: string;
+    v: string;
+  };
+  u?: number;
+  b?: [string, string][];
+  a?: [string, string][];
+}
 
 export default function Home() {
   const [data, setData] = useState<CandlestickData[]>([]);
+  const [orderBook, setOrderBook] = useState<OrderBookData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPair, setSelectedPair] = useState<string>(TRADING_PAIRS[0].symbol);
   const [selectedInterval, setSelectedInterval] = useState<string>('1h');
+  const [error, setError] = useState<string | null>(null);
+  const [isChartReady, setIsChartReady] = useState<boolean>(false);
+  const [lastPrice, setLastPrice] = useState<number | null>(null);
+  const [priceChange, setPriceChange] = useState<number | null>(null);
+  const [volume, setVolume] = useState<number | null>(null);
+
 
 
   useEffect(() => {
-    async function loadChartData() {
+    let ws: WebSocket;
+  
+    const initializeData = async () => {
       try {
-        const response = await fetchBinanceData<CandleStickResponse>("/api/v3/klines", {
-          symbol: selectedPair,
-          interval: selectedInterval,
-          limit: "200",
-      });
-      const chartData = (response as CandleStickResponse).map(
-        ([time, open, high, low, close]) => ({
+        
+      //  console.log(`Fetching data for ${selectedPair} with interval ${selectedInterval}`);
+        const [klines, orderBookData] = await Promise.all([
+          fetchBinanceData<CandleStickResponse>("/api/v3/klines", {
+            symbol: selectedPair,
+            interval: selectedInterval,
+            limit: "200",
+          }),
+          fetchBinanceData<OrderBookData>("/api/v3/depth", {
+            symbol: selectedPair,
+            limit: "18",
+          }),
+        ]);
+       
+        const chartData = klines.map(
+          ([time, open, high, low, close, volume]) => ({
             time: (time / 1000) as UTCTimestamp, // Convert timestamp to seconds
             open: parseFloat(open),
             high: parseFloat(high),
             low: parseFloat(low),
             close: parseFloat(close),
-            volume: 0,
-        })
-    );
+            volume: parseFloat(volume)
+          })
+        );
+  
         setData(chartData);
+        setOrderBook(orderBookData);
+        setLastPrice(parseFloat(klines[klines.length - 1][4]));
+        setVolume(parseFloat(klines[klines.length - 1][5]));
+      
+     
+        if (isChartReady) {
+          ws = createWebSocket(selectedPair, (data) => {
+          
+            if (data.e === 'kline') {
+              const newCandle: CandlestickData = {
+                time: data.k.t / 1000 as UTCTimestamp,
+                open: parseFloat(data.k.o),
+                high: parseFloat(data.k.h),
+                low: parseFloat(data.k.l),
+                close: parseFloat(data.k.c),
+                volume: parseFloat(data.k.v),
+              };
+  
+              setData(prev => {
+                const filtered = prev.filter(candle => candle.time !== newCandle.time);
+                return [...filtered, newCandle].sort((a, b) => a.time - b.time);
+              });
+  
+              const newPrice = parseFloat(data.k.c);
+              setLastPrice(prevPrice => {
+                if (prevPrice !== null) {
+                  setPriceChange(((newPrice - prevPrice) / prevPrice) * 100);
+                }
+                return newPrice;
+              });
+            } else if (data.e === 'depthUpdate') {
+             
+              setOrderBook({
+                lastUpdateId: data.u,
+                bids: data.b.map((bid: string[]) => ({
+                  price: parseFloat(bid[0]),
+                  quantity: parseFloat(bid[1]),
+                })),
+                asks: data.a.map((ask: string[]) => ({
+                  price: parseFloat(ask[0]),
+                  quantity: parseFloat(ask[1]),
+                })),
+              });
+            }
+          });
+        }
       } catch (error) {
-        console.error("Error fetching chart data:", error);
+        console.error('Error initializing data:', error);
       } finally {
         setLoading(false);
       }
-    }
+    };
+  
+    initializeData();
+  
+    return () => {
+      if (ws) {
+        closeWebSocket(ws, selectedPair);
+      }
+    };
+  }, [selectedPair, selectedInterval, isChartReady]); 
 
-    loadChartData();
-  }, [selectedPair, selectedInterval]);
+ 
+  const formatNumber = (number: number) => {
+    return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number);
+  };
 
   if (loading) {
     return <div className="loading min-h-screen text-center">Loading...</div>;
@@ -89,14 +180,43 @@ export default function Home() {
         </select>
       </div>
       </div>
+      <div className="mb-4">
+        <div className="flex justify-around items-center w-full lg:w-2/3 flex-col sm:flex-row ">
+         <div className="flex gap-2 items-center text-sm">
+         
+
+        
+         <h3 className="text-lg"> 
+            {lastPrice !== null && (
+                <FlipNumbers
+                  height={15}
+                  width={30}
+                  color="white"
+                  background="#2d3748"
+                  play
+                  perspective={100}
+                  numbers={formatNumber(lastPrice)}
+                />
+              )}
+            </h3>
+        
+            <div className={`flex items-center gap-2 ${priceChange && priceChange < 0 ? 'ask' : 'bid'}`}>
+
+            {priceChange && priceChange > 0 ? <FaArrowCircleUp  /> : <FaArrowCircleDown  />} <span >{priceChange?.toFixed(2)}%</span>
+            </div>
+         </div>
+            <h3 className="text-sm sm:text-lg mt-2 sm:mt-0">Volume: {volume?.toFixed(2)}</h3>
+         
+        </div>
+      </div>
       <div className="w-full flex flex-col lg:flex-row gap-4 ">
        <div className="w-full lg:w-2/3">
 
-          <PriceChart data={data} onReady={() => console.log("Chart is ready!")} />
+          <PriceChart data={data} onReady={() => setIsChartReady(true)} />
        </div>
        <div className="flex justify-center">
 
-          <OrderBook symbol={selectedPair} />
+          <OrderBook symbol={selectedPair} orderBook={orderBook}/>
        </div>
        
        
