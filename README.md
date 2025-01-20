@@ -44,3 +44,39 @@ npm run build
 Running in Production Mode
 To run the project in production mode after building:
 npm run start
+
+-- Considereations--
+Here is the dashboard I created for the project.
+
+I only had yesterday afternoon and night to work on it, and with more time, 
+I would have styled it more thoroughly and refactored it for better readability and optimization.
+
+That said, I thoroughly enjoyed building the dashboard—it felt like 
+I was experiencing the rollercoaster ride of Bitcoin's price in real-time! 😊
+
+Approach and Workflow
+I structured the project into three branches:
+
+Setup - For initial project configuration.
+Fetching Data - To handle data retrieval logic.
+Websocket + Layout - For live updates via WebSocket and building the UI layout.
+To ensure clarity, I wrote comprehensive commit messages that document each step of the process.
+
+Trade-offs and Challenges
+Chart Volume Rendering:
+I encountered an issue where volume bars appeared above the candlesticks. 
+It required some trial and error to adjust the chart's configuration and resolve this.
+
+WebSocket Data Management:
+Managing asks and bids posed a challenge because my initial interface for handling this data was incompatible with Binance's output. 
+While I could log data successfully, rendering it required further adjustments. 
+After resolving the issue, it was immensely satisfying to see the numbers rolling in real-time.
+
+External Libraries Used
+react-flip-numbers: For animating and styling the current price.
+react-icons: For integrating icons into the dashboard.
+Additional Notes
+The Binance WebSocket documentation proved invaluable for resolving errors, especially when handling dynamic pair changes.
+
+Thank you for the opportunity to work on this. I’m looking forward to your feedback!
+
