@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import PriceChart from "@/components/PriceChart";
 import { fetchBinanceData, createWebSocket, closeWebSocket } from "@/lib/fetchBinanceData";
-import { CandlestickData, OrderBookData, OrderBookEntry } from "@/lib/types";
+import { CandlestickData, OrderBookData } from "@/lib/types";
 import { UTCTimestamp } from "lightweight-charts";
 import OrderBook from "@/components/OrderBook";
 import { TRADING_PAIRS } from "@/lib/types";
@@ -13,20 +13,7 @@ import FlipNumbers from "react-flip-numbers";
 
 
 type CandleStickResponse = [number, string, string, string, string, string][];
-interface WebSocketMessage {
-  e: string;
-  k?: {
-    t: number;
-    o: string;
-    h: string;
-    l: string;
-    c: string;
-    v: string;
-  };
-  u?: number;
-  b?: [string, string][];
-  a?: [string, string][];
-}
+
 
 export default function Home() {
   const [data, setData] = useState<CandlestickData[]>([]);
