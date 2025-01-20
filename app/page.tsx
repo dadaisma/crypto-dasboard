@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import PriceChart from "@/components/PriceChart";
 import { fetchBinanceData, createWebSocket, closeWebSocket } from "@/lib/fetchBinanceData";
 import { CandlestickData, OrderBookData, OrderBookEntry } from "@/lib/types";
@@ -9,6 +9,8 @@ import OrderBook from "@/components/OrderBook";
 import PriceTicker from "@/components/PriceTicker";
 import { TRADING_PAIRS } from "@/lib/types";
 import Header from "@/components/Header";
+import { FaArrowCircleDown, FaArrowCircleUp } from "react-icons/fa";
+import FlipNumbers from "react-flip-numbers";
 
 
 type CandleStickResponse = [number, string, string, string, string, string][];
@@ -37,6 +39,9 @@ export default function Home() {
   const [isChartReady, setIsChartReady] = useState<boolean>(false);
   const [lastPrice, setLastPrice] = useState<number | null>(null);
   const [priceChange, setPriceChange] = useState<number | null>(null);
+  const [volume, setVolume] = useState<number | null>(null);
+
+
 
   useEffect(() => {
     let ws: WebSocket;
@@ -55,7 +60,7 @@ export default function Home() {
             limit: "18",
           }),
         ]);
-  
+       
         const chartData = klines.map(
           ([time, open, high, low, close, volume]) => ({
             time: (time / 1000) as UTCTimestamp, // Convert timestamp to seconds
@@ -70,7 +75,9 @@ export default function Home() {
         setData(chartData);
         setOrderBook(orderBookData);
         setLastPrice(parseFloat(klines[klines.length - 1][4]));
-  
+        setVolume(parseFloat(klines[klines.length - 1][5]));
+
+     
         if (isChartReady) {
           ws = createWebSocket(selectedPair, (data) => {
           
@@ -128,6 +135,10 @@ export default function Home() {
     };
   }, [selectedPair, selectedInterval, isChartReady]); 
 
+  const formatNumber = (number: number) => {
+    return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number);
+  };
+
   if (loading) {
     return <div className="loading min-h-screen text-center">Loading...</div>;
   }
@@ -166,6 +177,35 @@ export default function Home() {
           <option value="1M">1M</option>
         </select>
       </div>
+      </div>
+      <div className="mb-4">
+        <div className="flex justify-around items-center w-full lg:w-2/3 flex-col sm:flex-row ">
+         <div className="flex gap-2 items-center text-sm">
+         
+
+        
+         <h3 className="text-lg"> 
+            {lastPrice !== null && (
+                <FlipNumbers
+                  height={15}
+                  width={30}
+                  color="white"
+                  background="#2d3748"
+                  play
+                  perspective={100}
+                  numbers={formatNumber(lastPrice)}
+                />
+              )}
+            </h3>
+        
+            <div className={`flex items-center gap-2 ${priceChange && priceChange < 0 ? 'ask' : 'bid'}`}>
+
+            {priceChange && priceChange > 0 ? <FaArrowCircleUp  /> : <FaArrowCircleDown  />} <span >{priceChange?.toFixed(2)}%</span>
+            </div>
+         </div>
+            <h3 className="text-sm sm:text-lg mt-2 sm:mt-0">Volume: {volume?.toFixed(2)}</h3>
+         
+        </div>
       </div>
       <div className="w-full flex flex-col lg:flex-row gap-4 ">
        <div className="w-full lg:w-2/3">

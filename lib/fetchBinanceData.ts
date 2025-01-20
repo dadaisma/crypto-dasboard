@@ -45,7 +45,7 @@ export async function fetchBinanceData<T>(
     };
   
     ws.onclose = () => {
-      console.log('WebSocket connection closed. Reconnecting in 5 seconds...');
+      console.log('WebSocket connection closed. ');
     //  setTimeout(() => createWebSocket(symbol, onMessage), 5000);
     };
   
