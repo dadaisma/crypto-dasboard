@@ -18,7 +18,7 @@ export default function PriceChart({ data, onReady, interval }: PriceChartProps)
   const [ohlc, setOhlc] = useState<CandlestickData | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const barSpacingRef = useRef<number | null>(null);
-  const defaultBarSpacing = 6;
+  const defaultBarSpacing = 0.8;
 
   // Initialize the chart only once
   useEffect(() => {
@@ -139,11 +139,20 @@ export default function PriceChart({ data, onReady, interval }: PriceChartProps)
   }, [data]);
 
   useEffect(() => {
-    if (chartRef.current) {
-      chartRef.current.timeScale().applyOptions({ barSpacing: defaultBarSpacing });
+    if (chartRef.current && candlestickSeriesRef.current) {
+      const timeScale = chartRef.current.timeScale();
+  
+      // Reset bar spacing to default
+      timeScale.applyOptions({ barSpacing: defaultBarSpacing });
+      barSpacingRef.current = defaultBarSpacing;
+     
+      // Fit all data into the chart
+      chartRef.current.timeScale().fitContent();
+  
+      // Scroll to the most recent candle on the right
+      timeScale.scrollToRealTime();
     }
   }, [interval]);
-
   return (
     <div className="w-full h-[400px] bg-black rounded-lg p-4 relative">
       <div ref={chartContainerRef} className="w-full h-full" />

@@ -253,7 +253,7 @@ export default function Home() {
       <div className="w-full flex flex-col lg:flex-row gap-4 ">
        <div className="w-full lg:w-2/3">
 
-          <PriceChart data={data} onReady={() => setIsChartReady(true)} />
+          <PriceChart data={data} onReady={() => setIsChartReady(true)} interval={selectedInterval} />
        </div>
       
        <div className="flex justify-center">
