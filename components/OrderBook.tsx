@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { OrderBookData } from '@/lib/types';
-import { formatQuantityN, formatPriceRounded } from '@/lib/utils';
+import { formatPriceN,formatQuantityN, formatPriceRounded } from '@/lib/utils';
 
 
 const groupOrders = (orders: { price: number, quantity: number }[], interval: number) => {
@@ -38,6 +38,9 @@ const OrderBook = ({ symbol, orderBook }: { symbol: string, orderBook: OrderBook
     setInterval(parseFloat(e.target.value));
   };
 
+ const formatPrice = (price: number) => {
+  return symbol === 'DOGEUSDT' ? formatPriceN(price) : formatPriceRounded(price);
+ }
 
   return (
     <div className="bg-gray-900 p-2 rounded-lg">
@@ -50,6 +53,8 @@ const OrderBook = ({ symbol, orderBook }: { symbol: string, orderBook: OrderBook
             onChange={handleIntervalChange}
             className="p-2 bg-gray-800 text-white rounded text-sm"
           >
+            <option value={0.01}>$0.01</option>
+            <option value={0.1}>$0.10</option>
             <option value={0.5}>$0.50</option>
             <option value={1}>$1.00</option>
             <option value={10}>$10.00</option>
@@ -68,7 +73,7 @@ const OrderBook = ({ symbol, orderBook }: { symbol: string, orderBook: OrderBook
               <ul className="w-full h-96 overflow-y-auto ">
               {groupedBids.filter(bid => bid.quantity > 0).slice(0, 16).map(({ price, quantity }, index) => (
                   <li key={`${price}-${quantity}-${index}`} className="flex justify-between text-xs sm:text-sm bid relative gap-2">
-                    <span>{formatPriceRounded(price)}</span>
+                    <span>{formatPrice(price)}</span>
                     <span className='ml-5'>{formatQuantityN(quantity)}</span>
                     <div
                       className="absolute left-0 top-0 h-full bg-green-900 opacity-50"
@@ -83,7 +88,7 @@ const OrderBook = ({ symbol, orderBook }: { symbol: string, orderBook: OrderBook
               <ul className="w-full h-96 overflow-y-auto">
               {groupedAsks.filter(ask => ask.quantity > 0).slice(0, 16).map(({ price, quantity }, index) => (
                   <li key={`${price}-${quantity}-${index}`} className="flex justify-between text-xs sm:text-sm ask relative gap-2">
-                    <span>{formatPriceRounded(price)}</span>
+                    <span>{formatPrice(price)}</span>
                     <span className='ml-5'>{formatQuantityN(quantity)}</span>
                     <div
                       className="absolute left-0 top-0 h-full bg-red-900 opacity-50"
