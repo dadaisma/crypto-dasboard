@@ -7,10 +7,12 @@ import { CandlestickData } from "@/lib/types";
 interface PriceChartProps {
   data: CandlestickData[];
   interval: string;
+  selectedPair: string;
   onReady: () => void;
+  
 }
 
-export default function PriceChart({ data, onReady, interval }: PriceChartProps) {
+export default function PriceChart({ data, onReady, interval, selectedPair }: PriceChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candlestickSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -18,8 +20,10 @@ export default function PriceChart({ data, onReady, interval }: PriceChartProps)
   const [ohlc, setOhlc] = useState<CandlestickData | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const barSpacingRef = useRef<number | null>(null);
-  const defaultBarSpacing = 0.8;
+  const defaultBarSpacing = 1;
   const intervalRef = useRef(interval);
+  const minBarSpacing = 0.8;
+  
 
   useEffect(() => {
     intervalRef.current = interval;
@@ -39,6 +43,9 @@ export default function PriceChart({ data, onReady, interval }: PriceChartProps)
       },
       width: chartContainerRef.current.clientWidth,
       height: 400,
+      timeScale: {
+        barSpacing: defaultBarSpacing, // Set the initial bar spacing
+      },
     });
 
     // Create series
@@ -78,28 +85,31 @@ export default function PriceChart({ data, onReady, interval }: PriceChartProps)
       event.preventDefault();
       if (chartRef.current) {
         const timeScale = chartRef.current.timeScale();
-        const currentBarSpacing = timeScale.options().barSpacing;
+       const currentBarSpacing = timeScale.options().barSpacing;
     
         // Calculate the zoom factor (deltaY > 0 for zoom out, < 0 for zoom in)
         const zoomFactor = event.deltaY > 0 ? 1.1 : 0.8;
     
         // Apply new bar spacing
-        const newBarSpacing = Math.max(currentBarSpacing * zoomFactor,1); // Prevent barSpacing from being too small
-     //   timeScale.applyOptions({ barSpacing: newBarSpacing });
-        barSpacingRef.current = newBarSpacing;
+        const newBarSpacing = Math.max(currentBarSpacing * zoomFactor, minBarSpacing);  // Prevent barSpacing from being too small
+    // timeScale.applyOptions({ barSpacing: newBarSpacing });
+       barSpacingRef.current = newBarSpacing;
       }
     };
 
     chartContainerRef.current.addEventListener('wheel', handleZoom);
 
     chart.subscribeCrosshairMove((param) => {
+      
       if (!param || !param.seriesData) {
         setOhlc(null);
         return;
       }
     
       const ohlcData = param.seriesData.get(candlestickSeriesRef.current!);
-    
+   
+
+      
       if (ohlcData) {
         // Ensure timestamp comparison matches the data format
         const volumeData = data.find(
@@ -114,10 +124,11 @@ export default function PriceChart({ data, onReady, interval }: PriceChartProps)
     
           if (timeoutRef.current) clearTimeout(timeoutRef.current);
     
-          timeoutRef.current = setTimeout(() => {
+         timeoutRef.current = setTimeout(() => {
             setOhlc(null);
           }, 5000);
         }
+     
       }
     });
 
@@ -152,26 +163,21 @@ export default function PriceChart({ data, onReady, interval }: PriceChartProps)
   }, [data]);
 
   useEffect(() => {
-    if (chartRef.current && candlestickSeriesRef.current) {
-      const timeScale = chartRef.current.timeScale();
-  
-      // Reset bar spacing to default
-      timeScale.applyOptions({ barSpacing: defaultBarSpacing });
-      barSpacingRef.current = defaultBarSpacing;
-     
-      // Fit all data into the chart
+    if (chartRef.current) {
       chartRef.current.timeScale().fitContent();
-  
-      // Scroll to the most recent candle on the right
-      timeScale.scrollToRealTime();
+      chartRef.current.priceScale("right").applyOptions({
+        autoScale: true,
+      });
     }
-  }, [interval]);
-
+  }, [selectedPair, interval]);
+ 
   return (
     <div className="w-full h-[400px] bg-black rounded-lg p-4 relative">
       <div ref={chartContainerRef} className="w-full h-full" />
       {ohlc && (
         <div className=" text-sm flex flex-col sm:flex-row absolute top-2 left-2 text-white bg-gray-800 sm:gap-4 rounded z-50">
+          <p>Date: {new Date(ohlc.time * 1000).toLocaleDateString()}</p>
+          <p>Time: {new Date(ohlc.time * 1000).toLocaleTimeString()}</p>
           <p>Open: {ohlc.open}</p>
           <p>Close: {ohlc.close}</p>
           <p>High: {ohlc.high}</p>

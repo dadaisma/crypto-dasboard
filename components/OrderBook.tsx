@@ -38,9 +38,12 @@ const OrderBook = ({ symbol, orderBook }: { symbol: string, orderBook: OrderBook
     setInterval(parseFloat(e.target.value));
   };
 
- const formatPrice = (price: number) => {
-  return symbol === 'DOGEUSDT' ? formatPriceN(price) : formatPriceRounded(price);
- }
+  const formatPrice = (price: number) => {
+    if (interval === 0.01 || interval === 0.1 || interval === 0.5) {
+      return price.toFixed(2);
+    }
+    return symbol === 'DOGEUSDT' ? formatPriceN(price) : formatPriceRounded(price);
+  };
 
   return (
     <div className="bg-gray-900 p-2 rounded-lg">

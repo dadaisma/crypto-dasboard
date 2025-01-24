@@ -20,7 +20,7 @@ export default function Home() {
   const [orderBook, setOrderBook] = useState<OrderBookData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPair, setSelectedPair] = useState<string>(TRADING_PAIRS[0].symbol);
-  const [selectedInterval, setSelectedInterval] = useState<string>('1h');
+  const [selectedInterval, setSelectedInterval] = useState<string>('5m');
   const [error, setError] = useState<string | null>(null);
   const [isChartReady, setIsChartReady] = useState<boolean>(false);
   const [lastPrice, setLastPrice] = useState<number | null>(null);
@@ -42,7 +42,7 @@ export default function Home() {
           fetchBinanceData<CandleStickResponse>("/api/v3/klines", {
             symbol: selectedPair,
             interval: selectedInterval,
-            limit: "200",
+            limit: "1000",
           }),
           fetchBinanceData<OrderBookData>("/api/v3/depth", {
             symbol: selectedPair,
@@ -51,7 +51,7 @@ export default function Home() {
           fetchBinanceData<CandleStickResponse>("/api/v3/klines", {
             symbol: selectedPair,
             interval: "1h",
-            limit: "24",
+            limit: "200",
           }),
         ]);
        
@@ -256,7 +256,7 @@ export default function Home() {
       <div className="w-full flex flex-col lg:flex-row gap-4 ">
        <div className="w-full lg:w-2/3">
 
-          <PriceChart data={data} onReady={() => setIsChartReady(true)} interval={selectedInterval} />
+          <PriceChart data={data} onReady={() => setIsChartReady(true)} interval={selectedInterval} selectedPair={selectedPair} />
        </div>
       
        <div className="flex justify-center">
