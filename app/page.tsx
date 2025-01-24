@@ -92,18 +92,17 @@ export default function Home() {
  setVolume24h(volume24h);
 
      
-        if (isChartReady) {
-          ws = createWebSocket(selectedPair, (data) => {
-          
-            if (data.e === 'kline') {
-              const newCandle: CandlestickData = {
-                time: data.k.t / 1000 as UTCTimestamp,
-                open: parseFloat(data.k.o),
-                high: parseFloat(data.k.h),
-                low: parseFloat(data.k.l),
-                close: parseFloat(data.k.c),
-                volume: parseFloat(data.k.v),
-              };
+ if (isChartReady) {
+  ws = createWebSocket(selectedPair, selectedInterval, (data) => {
+    if (data.e === 'kline') {
+      const newCandle: CandlestickData = {
+        time: data.k.t / 1000 as UTCTimestamp,
+        open: parseFloat(data.k.o),
+        high: parseFloat(data.k.h),
+        low: parseFloat(data.k.l),
+        close: parseFloat(data.k.c),
+        volume: parseFloat(data.k.v),
+      };
   
               setData(prev => {
                 const filtered = prev.filter(candle => candle.time !== newCandle.time);
@@ -144,7 +143,7 @@ export default function Home() {
   
     return () => {
       if (ws) {
-        closeWebSocket(ws, selectedPair);
+        closeWebSocket(ws, selectedPair, selectedInterval);
       }
     };
   }, [selectedPair, selectedInterval, isChartReady]); 
@@ -199,6 +198,7 @@ export default function Home() {
           onChange={(e) => setSelectedInterval(e.target.value)}
           className="p-2 bg-gray-800 text-white"
         >
+           <option value="5m">5m</option>
           <option value="15m">15m</option>
           <option value="30m">30m</option>
           <option value="1h">1h</option>
