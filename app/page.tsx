@@ -148,6 +148,9 @@ export default function Home() {
     };
   }, [selectedPair, selectedInterval, isChartReady]); 
 
+  const handleIntervalChange = (newInterval: string) => {
+    setSelectedInterval(newInterval);
+  };
  
   const formatNumber = (number: number) => {
     return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number);
@@ -195,7 +198,7 @@ export default function Home() {
         <label className="mr-2 text-sm">Interval:</label>
         <select
           value={selectedInterval}
-          onChange={(e) => setSelectedInterval(e.target.value)}
+          onChange={(e) => handleIntervalChange(e.target.value)}
           className="p-2 bg-gray-800 text-white"
         >
            <option value="5m">5m</option>

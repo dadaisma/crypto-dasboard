@@ -19,11 +19,15 @@ export default function PriceChart({ data, onReady, interval }: PriceChartProps)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const barSpacingRef = useRef<number | null>(null);
   const defaultBarSpacing = 0.8;
+  const intervalRef = useRef(interval);
 
+  useEffect(() => {
+    intervalRef.current = interval;
+  }, [interval]);
   // Initialize the chart only once
   useEffect(() => {
+   
     if (!chartContainerRef.current || chartRef.current) return;
-
     const chart = createChart(chartContainerRef.current, {
       layout: {
         background: { color: 'transparent' },
@@ -93,14 +97,23 @@ export default function PriceChart({ data, onReady, interval }: PriceChartProps)
         setOhlc(null);
         return;
       }
-      const ohlcData = param.seriesData.get(candlestickSeries);
+    
+      const ohlcData = param.seriesData.get(candlestickSeriesRef.current!);
+    
       if (ohlcData) {
-        const volumeData = data.find(item => item.time === (ohlcData.time as UTCTimestamp));
+        // Ensure timestamp comparison matches the data format
+        const volumeData = data.find(
+          item => Number(item.time) === Number(ohlcData.time)
+        );
+    
         if (volumeData) {
-          setOhlc({ ...ohlcData, volume: volumeData.volume } as CandlestickData);
-
+          setOhlc({
+            ...ohlcData,
+            volume: volumeData.volume, // Add volume to the data
+          } as CandlestickData);
+    
           if (timeoutRef.current) clearTimeout(timeoutRef.current);
-
+    
           timeoutRef.current = setTimeout(() => {
             setOhlc(null);
           }, 5000);
@@ -153,6 +166,7 @@ export default function PriceChart({ data, onReady, interval }: PriceChartProps)
       timeScale.scrollToRealTime();
     }
   }, [interval]);
+
   return (
     <div className="w-full h-[400px] bg-black rounded-lg p-4 relative">
       <div ref={chartContainerRef} className="w-full h-full" />
