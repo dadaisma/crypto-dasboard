@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { createChart, IChartApi } from "lightweight-charts";
+import { useEffect, useRef, useState } from "react";
+import { createChart, IChartApi, UTCTimestamp } from "lightweight-charts";
 import { CandlestickData } from "@/lib/types";
 
 interface PriceChartProps {
@@ -12,6 +12,8 @@ interface PriceChartProps {
 export default function PriceChart({ data, onReady }: PriceChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const [ohlc, setOhlc] = useState<CandlestickData | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -65,6 +67,14 @@ export default function PriceChart({ data, onReady }: PriceChartProps) {
         bottom: 0,
       },
     });
+
+    chart.priceScale("volume").applyOptions({
+      scaleMargins: {
+        top: 0.7,
+        bottom: 0,
+      },
+    });
+
     chartRef.current = chart;
     onReady();
 
@@ -76,6 +86,27 @@ export default function PriceChart({ data, onReady }: PriceChartProps) {
       }
     };
 
+    chart.subscribeCrosshairMove((param) => {
+      if (!param || !param.seriesData) return;
+      const ohlcData = param.seriesData.get(candlestickSeries);
+      if (ohlcData) {
+        const volumeData = data.find(item => item.time === (ohlcData.time as UTCTimestamp));
+        if (volumeData) {
+          setOhlc({ ...ohlcData, volume: volumeData.volume } as CandlestickData);
+           // Clear previous timeout if it exists
+           if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+          }
+
+          // Set a new timeout to clear the OHLC data after 5 seconds
+          timeoutRef.current = setTimeout(() => {
+            setOhlc(null);
+          }, 5000);
+        }
+      }
+    });
+
+
     window.addEventListener('resize', handleResize);
 
     return () => {
@@ -85,8 +116,17 @@ export default function PriceChart({ data, onReady }: PriceChartProps) {
   }, [data, onReady]);
 
   return (
-    <div className="w-full h-[400px] bg-black rounded-lg p-4">
-      <div ref={chartContainerRef} className="w-full h-full" />
-    </div>
+    <div className="w-full h-[400px] bg-black rounded-lg p-4 relative">
+    <div ref={chartContainerRef} className="w-full h-full" />
+    {ohlc && (
+        <div className=" text-sm flex absolute top-2 left-2 text-white bg-gray-800 gap-4  rounded z-50">
+        <p>Open: {ohlc.open}</p>
+        <p>Close: {ohlc.close}</p>
+        <p>High: {ohlc.high}</p>
+        <p>Low: {ohlc.low}</p>
+        <p >Volume: {ohlc.volume}</p>
+      </div>
+    )}
+  </div>
   );
 }
