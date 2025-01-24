@@ -119,7 +119,7 @@ export default function PriceChart({ data, onReady }: PriceChartProps) {
     <div className="w-full h-[400px] bg-black rounded-lg p-4 relative">
     <div ref={chartContainerRef} className="w-full h-full" />
     {ohlc && (
-        <div className=" text-sm flex absolute top-2 left-2 text-white bg-gray-800 gap-4  rounded z-50">
+        <div className=" text-sm flex flex-col sm:flex-row absolute top-2 left-2 text-white bg-gray-800 sm:gap-4  rounded z-50">
         <p>Open: {ohlc.open}</p>
         <p>Close: {ohlc.close}</p>
         <p>High: {ohlc.high}</p>
