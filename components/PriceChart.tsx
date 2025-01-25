@@ -20,7 +20,7 @@ export default function PriceChart({ data, onReady, interval, selectedPair }: Pr
   const [ohlc, setOhlc] = useState<CandlestickData | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const barSpacingRef = useRef<number | null>(null);
-  const defaultBarSpacing = 1;
+  const defaultBarSpacing = 8;
   const intervalRef = useRef(interval);
   const minBarSpacing = 0.8;
   
@@ -28,7 +28,7 @@ export default function PriceChart({ data, onReady, interval, selectedPair }: Pr
   useEffect(() => {
     intervalRef.current = interval;
   }, [interval]);
-  // Initialize the chart only once
+ 
   useEffect(() => {
    
     if (!chartContainerRef.current || chartRef.current) return;
@@ -44,7 +44,7 @@ export default function PriceChart({ data, onReady, interval, selectedPair }: Pr
       width: chartContainerRef.current.clientWidth,
       height: 400,
       timeScale: {
-        barSpacing: defaultBarSpacing, // Set the initial bar spacing
+        barSpacing: defaultBarSpacing, 
       },
     });
 
@@ -133,7 +133,7 @@ export default function PriceChart({ data, onReady, interval, selectedPair }: Pr
     });
 
     window.addEventListener('resize', handleResize);
-    chartContainerRef.current.addEventListener('wheel', handleZoom);
+    //chartContainerRef.current.addEventListener('wheel', handleZoom);
 
     onReady();
 
@@ -164,12 +164,15 @@ export default function PriceChart({ data, onReady, interval, selectedPair }: Pr
 
   useEffect(() => {
     if (chartRef.current) {
-      chartRef.current.timeScale().fitContent();
+      const timeScale = chartRef.current.timeScale();
+      timeScale.applyOptions({ barSpacing: defaultBarSpacing }); // Set the bar spacing
+      timeScale.scrollToPosition(0, false); // Align the last bar to the right
+     // chartRef.current.timeScale().fitContent();
       chartRef.current.priceScale("right").applyOptions({
         autoScale: true,
       });
     }
-  }, [selectedPair, interval]);
+  },[selectedPair, interval]);
  
   return (
     <div className="w-full h-[400px] bg-black rounded-lg p-4 relative">
