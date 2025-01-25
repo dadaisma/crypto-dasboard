@@ -42,7 +42,7 @@ export default function Home() {
           fetchBinanceData<CandleStickResponse>("/api/v3/klines", {
             symbol: selectedPair,
             interval: selectedInterval,
-            limit: "1000",
+            limit: "800",
           }),
           fetchBinanceData<OrderBookData>("/api/v3/depth", {
             symbol: selectedPair,
@@ -51,7 +51,7 @@ export default function Home() {
           fetchBinanceData<CandleStickResponse>("/api/v3/klines", {
             symbol: selectedPair,
             interval: "1h",
-            limit: "200",
+            limit: "24",
           }),
         ]);
        
