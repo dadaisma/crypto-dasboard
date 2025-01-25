@@ -20,7 +20,7 @@ export default function Home() {
   const [orderBook, setOrderBook] = useState<OrderBookData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPair, setSelectedPair] = useState<string>(TRADING_PAIRS[0].symbol);
-  const [selectedInterval, setSelectedInterval] = useState<string>('5m');
+  const [selectedInterval, setSelectedInterval] = useState<string>('1h');
   const [error, setError] = useState<string | null>(null);
   const [isChartReady, setIsChartReady] = useState<boolean>(false);
   const [lastPrice, setLastPrice] = useState<number | null>(null);
